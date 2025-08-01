@@ -3,18 +3,30 @@ import { HeroSection } from "@/components/HeroSection";
 import { URLAnalyzer } from "@/components/URLAnalyzer";
 import { ScreenshotAnalyzer } from "@/components/ScreenshotAnalyzer";
 import { AnalysisResults } from "@/components/AnalysisResults";
+import { AuthModal } from "@/components/AuthModal";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/components/AuthProvider";
 import { toast } from "sonner";
+import { User, LogOut, FolderOpen } from "lucide-react";
 
 type AnalysisType = 'url' | 'screenshot';
 
 const Index = () => {
+  const { user, signOut, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Mock analysis function - In a real app, this would call AI APIs
+  // Check if user is authenticated before analysis
   const performAnalysis = async (type: AnalysisType, data: string | File) => {
+    if (!user) {
+      setShowAuthModal(true);
+      toast.error("Inicia sesión para guardar tus análisis");
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -214,6 +226,10 @@ module.exports = {
       };
 
       setResults(mockResults);
+      
+      // TODO: Save to database using analysisService
+      console.log('Analysis completed for user:', user.email);
+      
       toast.success(
         type === 'url' 
           ? "Página web analizada exitosamente" 
@@ -236,8 +252,56 @@ module.exports = {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Sesión cerrada correctamente");
+    } catch (error) {
+      toast.error("Error al cerrar sesión");
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-center">
+          <div className="w-16 h-16 bg-primary/20 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-primary-glow border-t-transparent rounded-full animate-spin" />
+          </div>
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Auth/User Section */}
+      <div className="fixed top-4 right-4 z-50">
+        {user ? (
+          <div className="flex items-center gap-2 bg-card/90 backdrop-blur-sm rounded-lg px-4 py-2 border">
+            <User className="w-4 h-4 text-primary" />
+            <span className="text-sm text-foreground">{user.email}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="ml-2 h-auto p-1"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            onClick={() => setShowAuthModal(true)}
+            className="bg-primary/90 backdrop-blur-sm hover:bg-primary"
+          >
+            <User className="w-4 h-4 mr-2" />
+            Iniciar Sesión
+          </Button>
+        )}
+      </div>
+
       <HeroSection />
       
       <section className="py-20 px-6">
@@ -289,6 +353,11 @@ module.exports = {
           )}
         </div>
       </section>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} />
+      )}
     </div>
   );
 };
