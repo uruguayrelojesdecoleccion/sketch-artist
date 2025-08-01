@@ -14,7 +14,396 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analyses: {
+        Row: {
+          ai_prompt: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          processing_time_ms: number | null
+          project_id: string
+          screenshot_url: string | null
+          source_url: string | null
+          status: Database["public"]["Enums"]["analysis_status"]
+          type: Database["public"]["Enums"]["analysis_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_prompt?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          processing_time_ms?: number | null
+          project_id: string
+          screenshot_url?: string | null
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["analysis_status"]
+          type: Database["public"]["Enums"]["analysis_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_prompt?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          processing_time_ms?: number | null
+          project_id?: string
+          screenshot_url?: string | null
+          source_url?: string | null
+          status?: Database["public"]["Enums"]["analysis_status"]
+          type?: Database["public"]["Enums"]["analysis_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analyses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analysis_screenshots: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          height: number | null
+          id: string
+          is_original: boolean
+          mime_type: string | null
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          height?: number | null
+          id?: string
+          is_original?: boolean
+          mime_type?: string | null
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          height?: number | null
+          id?: string
+          is_original?: boolean
+          mime_type?: string | null
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_screenshots_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analysis_tags: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          id: string
+          tag: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          id?: string
+          tag: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          id?: string
+          tag?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_tags_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      component_templates: {
+        Row: {
+          created_at: string
+          css_template: string | null
+          description: string | null
+          html_template: string | null
+          id: string
+          is_public: boolean
+          name: string
+          props_schema: Json | null
+          react_template: string | null
+          tailwind_template: string | null
+          type: Database["public"]["Enums"]["component_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          css_template?: string | null
+          description?: string | null
+          html_template?: string | null
+          id?: string
+          is_public?: boolean
+          name: string
+          props_schema?: Json | null
+          react_template?: string | null
+          tailwind_template?: string | null
+          type?: Database["public"]["Enums"]["component_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          css_template?: string | null
+          description?: string | null
+          html_template?: string | null
+          id?: string
+          is_public?: boolean
+          name?: string
+          props_schema?: Json | null
+          react_template?: string | null
+          tailwind_template?: string | null
+          type?: Database["public"]["Enums"]["component_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      components: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          css_code: string | null
+          description: string | null
+          html_code: string | null
+          id: string
+          name: string
+          position_data: Json | null
+          props: Json | null
+          react_code: string | null
+          tailwind_classes: string | null
+          type: Database["public"]["Enums"]["component_type"]
+          user_id: string
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          css_code?: string | null
+          description?: string | null
+          html_code?: string | null
+          id?: string
+          name: string
+          position_data?: Json | null
+          props?: Json | null
+          react_code?: string | null
+          tailwind_classes?: string | null
+          type?: Database["public"]["Enums"]["component_type"]
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          css_code?: string | null
+          description?: string | null
+          html_code?: string | null
+          id?: string
+          name?: string
+          position_data?: Json | null
+          props?: Json | null
+          react_code?: string | null
+          tailwind_classes?: string | null
+          type?: Database["public"]["Enums"]["component_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "components_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      design_systems: {
+        Row: {
+          analysis_id: string
+          border_radius: Json
+          breakpoints: Json
+          colors: Json
+          created_at: string
+          fonts: Json
+          id: string
+          shadows: Json
+          spacing: Json
+          user_id: string
+        }
+        Insert: {
+          analysis_id: string
+          border_radius?: Json
+          breakpoints?: Json
+          colors?: Json
+          created_at?: string
+          fonts?: Json
+          id?: string
+          shadows?: Json
+          spacing?: Json
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string
+          border_radius?: Json
+          breakpoints?: Json
+          colors?: Json
+          created_at?: string
+          fonts?: Json
+          id?: string
+          shadows?: Json
+          spacing?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_systems_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generated_code: {
+        Row: {
+          analysis_id: string
+          code: string
+          created_at: string
+          file_size: number | null
+          filename: string | null
+          format: Database["public"]["Enums"]["code_format"]
+          id: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id: string
+          code: string
+          created_at?: string
+          file_size?: number | null
+          filename?: string | null
+          format: Database["public"]["Enums"]["code_format"]
+          id?: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string
+          code?: string
+          created_at?: string
+          file_size?: number | null
+          filename?: string | null
+          format?: Database["public"]["Enums"]["code_format"]
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_code_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          ai_model_preference: string | null
+          auto_generate_components: boolean
+          created_at: string
+          default_code_format: Database["public"]["Enums"]["code_format"]
+          export_settings: Json
+          id: string
+          preferred_css_framework: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_model_preference?: string | null
+          auto_generate_components?: boolean
+          created_at?: string
+          default_code_format?: Database["public"]["Enums"]["code_format"]
+          export_settings?: Json
+          id?: string
+          preferred_css_framework?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_model_preference?: string | null
+          auto_generate_components?: boolean
+          created_at?: string
+          default_code_format?: Database["public"]["Enums"]["code_format"]
+          export_settings?: Json
+          id?: string
+          preferred_css_framework?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +412,20 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      analysis_status: "pending" | "processing" | "completed" | "failed"
+      analysis_type: "url" | "screenshot"
+      code_format: "html" | "css" | "react" | "tailwind" | "vue" | "angular"
+      component_type:
+        | "button"
+        | "input"
+        | "card"
+        | "navigation"
+        | "header"
+        | "footer"
+        | "form"
+        | "modal"
+        | "table"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +552,22 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      analysis_status: ["pending", "processing", "completed", "failed"],
+      analysis_type: ["url", "screenshot"],
+      code_format: ["html", "css", "react", "tailwind", "vue", "angular"],
+      component_type: [
+        "button",
+        "input",
+        "card",
+        "navigation",
+        "header",
+        "footer",
+        "form",
+        "modal",
+        "table",
+        "other",
+      ],
+    },
   },
 } as const
