@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/components/AuthProvider";
 import { toast } from "sonner";
 import { User, LogOut, FolderOpen } from "lucide-react";
+import { analysisService } from "@/services/analysisService";
 
 type AnalysisType = 'url' | 'screenshot';
 
@@ -30,219 +31,92 @@ const Index = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      toast.success("Iniciando análisis con IA...");
       
-      // Mock results - In real implementation, this would come from AI analysis
-      const mockResults = {
-        components: [
-          {
-            name: "Navigation Bar",
-            type: "Header",
-            description: "Barra de navegación principal con logo y menú",
-            code: `<nav className="flex items-center justify-between px-6 py-4 bg-white shadow-sm">
-  <div className="flex items-center gap-2">
-    <img src="/logo.svg" alt="Logo" className="w-8 h-8" />
-    <span className="font-bold text-xl">Brand</span>
-  </div>
-  <ul className="flex items-center gap-6">
-    <li><a href="#" className="hover:text-blue-600">Inicio</a></li>
-    <li><a href="#" className="hover:text-blue-600">Productos</a></li>
-    <li><a href="#" className="hover:text-blue-600">Contacto</a></li>
-  </ul>
-</nav>`,
-            styles: "height: 64px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"
-          },
-          {
-            name: "Hero Section",
-            type: "Section",
-            description: "Sección principal con título y call-to-action",
-            code: `<section className="py-20 px-6 text-center bg-gradient-to-r from-blue-50 to-indigo-50">
-  <h1 className="text-5xl font-bold text-gray-900 mb-6">
-    Título Principal
-  </h1>
-  <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-    Descripción del producto o servicio principal
-  </p>
-  <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700">
-    Call to Action
-  </button>
-</section>`,
-            styles: "padding: 80px 24px; background: linear-gradient(to right, #eff6ff, #eef2ff);"
-          },
-          {
-            name: "Feature Card",
-            type: "Card",
-            description: "Tarjeta de característica con icono y descripción",
-            code: `<div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-    <svg className="w-6 h-6 text-blue-600">...</svg>
-  </div>
-  <h3 className="text-lg font-semibold text-gray-900 mb-2">Título</h3>
-  <p className="text-gray-600">Descripción de la característica</p>
-</div>`,
-            styles: "padding: 24px; background: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"
-          }
-        ],
-        styles: {
-          colors: [
-            { name: "Primary", value: "#2563eb" },
-            { name: "Secondary", value: "#64748b" },
-            { name: "Background", value: "#ffffff" },
-            { name: "Text Primary", value: "#111827" },
-            { name: "Text Secondary", value: "#6b7280" },
-            { name: "Accent", value: "#3b82f6" }
-          ],
-          fonts: [
-            { name: "Heading", family: "Inter, sans-serif", size: "32px" },
-            { name: "Body", family: "Inter, sans-serif", size: "16px" },
-            { name: "Caption", family: "Inter, sans-serif", size: "14px" }
-          ],
-          spacing: [
-            { name: "xs", value: "4px" },
-            { name: "sm", value: "8px" },
-            { name: "md", value: "16px" },
-            { name: "lg", value: "24px" },
-            { name: "xl", value: "32px" },
-            { name: "2xl", value: "48px" }
-          ]
-        },
-        layout: {
-          structure: `<div className="min-h-screen">
-  <header className="sticky top-0 z-50">
-    <!-- Navigation -->
-  </header>
-  <main>
-    <section className="hero">
-      <!-- Hero content -->
-    </section>
-    <section className="features">
-      <!-- Features grid -->
-    </section>
-  </main>
-  <footer>
-    <!-- Footer content -->
-  </footer>
-</div>`,
-          grid: "CSS Grid with 3 columns on desktop, 1 on mobile",
-          responsive: "Mobile-first approach with Tailwind breakpoints"
-        },
-        fullCode: {
-          html: `<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Página Analizada</title>
-    <link href="https://cdn.tailwindcss.com" rel="stylesheet">
-</head>
-<body>
-    <nav class="flex items-center justify-between px-6 py-4 bg-white shadow-sm">
-        <!-- Navigation content -->
-    </nav>
-    <main>
-        <section class="py-20 px-6 text-center bg-gradient-to-r from-blue-50 to-indigo-50">
-            <!-- Hero content -->
-        </section>
-    </main>
-</body>
-</html>`,
-          css: `.navigation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.hero {
-  padding: 80px 24px;
-  text-align: center;
-  background: linear-gradient(to right, #eff6ff, #eef2ff);
-}
-
-.hero h1 {
-  font-size: 48px;
-  font-weight: bold;
-  color: #111827;
-  margin-bottom: 24px;
-}`,
-          react: `import React from 'react';
-
-const ExtractedComponent = () => {
-  return (
-    <div className="min-h-screen">
-      <nav className="flex items-center justify-between px-6 py-4 bg-white shadow-sm">
-        <div className="flex items-center gap-2">
-          <img src="/logo.svg" alt="Logo" className="w-8 h-8" />
-          <span className="font-bold text-xl">Brand</span>
-        </div>
-        <ul className="flex items-center gap-6">
-          <li><a href="#" className="hover:text-blue-600">Inicio</a></li>
-          <li><a href="#" className="hover:text-blue-600">Productos</a></li>
-          <li><a href="#" className="hover:text-blue-600">Contacto</a></li>
-        </ul>
-      </nav>
-      
-      <main>
-        <section className="py-20 px-6 text-center bg-gradient-to-r from-blue-50 to-indigo-50">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            Título Principal
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Descripción del producto o servicio principal
-          </p>
-          <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700">
-            Call to Action
-          </button>
-        </section>
-      </main>
-    </div>
-  );
-};
-
-export default ExtractedComponent;`,
-          tailwind: `// Configuración de Tailwind extraída
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        primary: '#2563eb',
-        secondary: '#64748b',
-        accent: '#3b82f6'
-      },
-      fontFamily: {
-        sans: ['Inter', 'sans-serif']
-      },
-      spacing: {
-        '18': '4.5rem',
-        '88': '22rem'
-      }
-    }
-  }
-}`
+      // Create analysis record
+      const analysisData = {
+        type: type,
+        source_url: type === 'url' ? data as string : undefined,
+        metadata: { 
+          started_at: new Date().toISOString(),
+          type: type
         }
       };
 
-      setResults(mockResults);
+      const analysis = await analysisService.createAnalysis(analysisData);
       
-      // TODO: Save to database using analysisService
-      console.log('Analysis completed for user:', user.email);
-      
-      toast.success(
-        type === 'url' 
-          ? "Página web analizada exitosamente" 
-          : "Screenshot analizado exitosamente"
-      );
-      
-      // Scroll to results
-      setTimeout(() => {
-        document.getElementById('results')?.scrollIntoView({ 
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }, 500);
+      // Process based on type
+      if (type === 'screenshot') {
+        await analysisService.processScreenshot(analysis.id, data as File);
+      } else {
+        await analysisService.processUrl(analysis.id, data as string);
+      }
+
+      // Poll for completion
+      let completed = false;
+      let attempts = 0;
+      const maxAttempts = 60; // 5 minutes max
+
+      toast.success("Procesando con OpenAI y Firecrawl...");
+
+      while (!completed && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+        
+        const currentAnalysis = await analysisService.getAnalysis(analysis.id);
+        
+        if (currentAnalysis.status === 'completed') {
+          completed = true;
+          
+          // Get full results
+          const fullResults = await analysisService.getAnalysisWithResults(analysis.id);
+          
+          // Transform to expected format
+          const transformedResults = {
+            components: fullResults.components.map(comp => ({
+              name: comp.name,
+              type: comp.type,
+              description: comp.description,
+              code: comp.html_code
+            })),
+            styles: {
+              colors: fullResults.designSystem?.colors?.map((c: any) => ({ name: c.name, value: c.value })) || [],
+              fonts: fullResults.designSystem?.fonts?.map((f: any) => ({ name: f.family, family: f.family, size: f.sizes?.[0] || '16px' })) || [],
+              spacing: fullResults.designSystem?.spacing?.map((s: any) => ({ name: s.name, value: s.value })) || []
+            },
+            layout: {
+              structure: "Estructura detectada automáticamente",
+              grid: "Sistema de grid identificado",
+              responsive: "Diseño responsive detectado"
+            },
+            fullCode: {
+              html: fullResults.generatedCode.find((c: any) => c.format === 'html')?.code || '',
+              css: fullResults.generatedCode.find((c: any) => c.format === 'css')?.code || '',
+              react: fullResults.generatedCode.find((c: any) => c.format === 'react')?.code || '',
+              tailwind: fullResults.generatedCode.find((c: any) => c.format === 'tailwind')?.code || ''
+            }
+          };
+
+          setResults(transformedResults);
+          toast.success("¡Análisis completado exitosamente!");
+          
+          // Scroll to results
+          setTimeout(() => {
+            document.getElementById('results')?.scrollIntoView({ 
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }, 500);
+          
+        } else if (currentAnalysis.status === 'failed') {
+          throw new Error('El análisis falló');
+        }
+        
+        attempts++;
+      }
+
+      if (!completed) {
+        throw new Error('El análisis tomó demasiado tiempo');
+      }
       
     } catch (error) {
       toast.error("Error durante el análisis. Por favor intenta de nuevo.");
