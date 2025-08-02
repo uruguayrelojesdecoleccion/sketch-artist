@@ -1,5 +1,4 @@
-// Temporarily commented until types are generated
-// import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Project {
   id: string;
@@ -16,24 +15,82 @@ export interface CreateProjectData {
 }
 
 export const projectService = {
-  // TODO: Implement after types are generated
   async createProject(data: CreateProjectData): Promise<Project> {
-    throw new Error('Not implemented yet');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: project, error } = await supabase
+      .from('projects')
+      .insert({
+        name: data.name,
+        description: data.description,
+        user_id: user.id
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return project;
   },
 
   async getUserProjects(): Promise<Project[]> {
-    throw new Error('Not implemented yet');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   },
 
   async getProject(id: string): Promise<Project> {
-    throw new Error('Not implemented yet');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
   async updateProject(id: string, updates: Partial<CreateProjectData>): Promise<Project> {
-    throw new Error('Not implemented yet');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('projects')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
   async deleteProject(id: string): Promise<void> {
-    throw new Error('Not implemented yet');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
   }
 };
