@@ -104,10 +104,17 @@ export const analysisService = {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('User not authenticated');
 
-    // Convert file to base64
-    const arrayBuffer = await imageFile.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    const base64 = btoa(String.fromCharCode(...bytes));
+    // Convert file to base64 with proper handling
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64Data = result.split(',')[1]; // Remove data:image/...;base64, prefix
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(imageFile);
+    });
 
     // Call edge function
     const { data, error } = await supabase.functions.invoke('analyze-screenshot', {
