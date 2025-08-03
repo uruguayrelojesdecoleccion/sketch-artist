@@ -16,7 +16,7 @@ export interface Analysis {
 }
 
 export interface CreateAnalysisData {
-  project_id?: string;
+  project_id?: string | null;
   type: 'url' | 'screenshot';
   source_url?: string;
   metadata?: any;
@@ -34,21 +34,29 @@ export const analysisService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const { data: analysis, error } = await supabase
-      .from('analyses')
-      .insert({
-        project_id: data.project_id,
-        type: data.type,
-        source_url: data.source_url,
-        user_id: user.id,
-        status: 'pending',
-        metadata: data.metadata
-      })
-      .select()
-      .single();
+    try {
+      const { data: analysis, error } = await supabase
+        .from('analyses')
+        .insert({
+          project_id: data.project_id || null,
+          type: data.type,
+          source_url: data.source_url,
+          user_id: user.id,
+          status: 'pending',
+          metadata: data.metadata
+        })
+        .select()
+        .single();
 
-    if (error) throw error;
-    return analysis;
+      if (error) {
+        console.error('Error creating analysis:', error);
+        throw new Error(`Failed to create analysis: ${error.message}`);
+      }
+      return analysis;
+    } catch (error) {
+      console.error('Create analysis error:', error);
+      throw error;
+    }
   },
 
   async getUserAnalyses(): Promise<Analysis[]> {

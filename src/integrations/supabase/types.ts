@@ -21,7 +21,7 @@ export type Database = {
           id: string
           metadata: Json | null
           processing_time_ms: number | null
-          project_id: string
+          project_id: string | null
           screenshot_url: string | null
           source_url: string | null
           status: Database["public"]["Enums"]["analysis_status"]
@@ -35,7 +35,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           processing_time_ms?: number | null
-          project_id: string
+          project_id?: string | null
           screenshot_url?: string | null
           source_url?: string | null
           status?: Database["public"]["Enums"]["analysis_status"]
@@ -49,7 +49,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           processing_time_ms?: number | null
-          project_id?: string
+          project_id?: string | null
           screenshot_url?: string | null
           source_url?: string | null
           status?: Database["public"]["Enums"]["analysis_status"]
