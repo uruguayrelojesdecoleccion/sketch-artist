@@ -7,10 +7,64 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+// Validate environment variables
+const validateEnvironment = () => {
+  const required = {
+    'OPENAI_API_KEY': Deno.env.get('OPENAI_API_KEY'),
+    'FIRECRAWL_API_KEY': Deno.env.get('FIRECRAWL_API_KEY'),
+    'SUPABASE_URL': Deno.env.get('SUPABASE_URL'),
+    'SUPABASE_SERVICE_ROLE_KEY': Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  };
+  
+  for (const [key, value] of Object.entries(required)) {
+    if (!value) {
+      throw new Error(`${key} environment variable is required`);
+    }
+  }
+  
+  console.log('Environment validation passed');
+  return required;
+};
+
+// Retry logic for API calls
+const fetchWithRetry = async (url: string, options: any, maxRetries = 3) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      console.log(`Attempt ${i + 1}/${maxRetries} for ${url}`);
+      const response = await fetch(url, options);
+      
+      if (response.ok) {
+        console.log(`Success on attempt ${i + 1}`);
+        return response;
+      }
+      
+      if (response.status === 429) {
+        // Rate limit - wait and retry
+        const waitTime = 1000 * Math.pow(2, i); // Exponential backoff
+        console.log(`Rate limited, waiting ${waitTime}ms before retry`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    } catch (error) {
+      console.log(`Attempt ${i + 1} failed:`, error.message);
+      if (i === maxRetries - 1) throw error;
+      const waitTime = 1000 * (i + 1);
+      console.log(`Waiting ${waitTime}ms before retry`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+  
+  // If we reach here, all retries failed
+  throw new Error(`Failed after ${maxRetries} attempts`);
+};
+
+const env = validateEnvironment();
+const openAIApiKey = env['OPENAI_API_KEY']!;
+const firecrawlApiKey = env['FIRECRAWL_API_KEY']!;
+const supabaseUrl = env['SUPABASE_URL']!;
+const supabaseServiceKey = env['SUPABASE_SERVICE_ROLE_KEY']!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -49,7 +103,7 @@ serve(async (req) => {
 
     // Scrape with Firecrawl
     console.log('Starting Firecrawl scraping...');
-    const firecrawlResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    const firecrawlResponse = await fetchWithRetry('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${firecrawlApiKey}`,
@@ -152,7 +206,8 @@ Responde SOLO con un JSON válido con esta estructura:
       });
     }
 
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    console.log('Calling OpenAI API...');
+    const openAIResponse = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,

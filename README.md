@@ -59,6 +59,29 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase (Backend & Database)
+- OpenAI API (AI Analysis)
+- Firecrawl API (Web Scraping)
+
+## API Configuration
+
+This project uses OpenAI and Firecrawl APIs for web analysis. See [API_SETUP.md](./API_SETUP.md) for detailed configuration instructions.
+
+### Quick Setup
+
+1. **Configure environment variables** in your Supabase project:
+   - `OPENAI_API_KEY` - Required for AI analysis
+   - `FIRECRAWL_API_KEY` - Required for URL analysis
+
+2. **Test the APIs**:
+   ```bash
+   npm run test:apis
+   ```
+
+3. **Deploy functions** to Supabase:
+   ```bash
+   supabase functions deploy
+   ```
 
 ## How can I deploy this project?
 
