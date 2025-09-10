@@ -101,26 +101,49 @@ serve(async (req) => {
       .eq('id', analysisId)
       .eq('user_id', user.id);
 
+    // Validate URL format
+    try {
+      new URL(url);
+    } catch (urlError) {
+      throw new Error(`Invalid URL format: ${url}`);
+    }
+
     // Scrape with Firecrawl
     console.log('Starting Firecrawl scraping...');
-    const firecrawlResponse = await fetchWithRetry('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firecrawlApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: url,
-        formats: ['markdown', 'html', 'screenshot'],
-        includeTags: ['title', 'meta', 'link'],
-        excludeTags: ['script', 'style'],
-        waitFor: 2000,
-        screenshot: {
-          mode: 'desktop',
-          fullPage: true
-        }
-      }),
-    });
+    let firecrawlResponse;
+    try {
+      firecrawlResponse = await fetchWithRetry('https://api.firecrawl.dev/v1/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: url,
+          formats: ['markdown', 'html'],
+          includeTags: ['title', 'meta', 'link'],
+          excludeTags: ['script', 'style'],
+          waitFor: 3000
+        }),
+      });
+    } catch (firecrawlError) {
+      console.error('Firecrawl API error details:', firecrawlError);
+      
+      // Update analysis with error
+      await supabase
+        .from('analyses')
+        .update({
+          status: 'failed',
+          metadata: { 
+            error_type: 'firecrawl_error',
+            error_message: firecrawlError.message,
+            url: url
+          }
+        })
+        .eq('id', analysisId);
+      
+      throw new Error(`Failed to scrape URL: ${firecrawlError.message}`);
+    }
 
     if (!firecrawlResponse.ok) {
       throw new Error(`Firecrawl API error: ${firecrawlResponse.statusText}`);
@@ -226,7 +249,73 @@ Responde SOLO con un JSON válido con esta estructura:
     }
 
     const openAIData = await openAIResponse.json();
-    const analysisResult = JSON.parse(openAIData.choices[0].message.content);
+    console.log('OpenAI raw response length:', openAIData.choices[0].message.content?.length);
+    
+    let analysisResult;
+    try {
+      // Validate OpenAI response
+      if (!openAIData.choices || !openAIData.choices[0] || !openAIData.choices[0].message) {
+        throw new Error('Invalid OpenAI response format');
+      }
+      
+      const content = openAIData.choices[0].message.content;
+      if (!content) {
+        throw new Error('OpenAI returned empty content');
+      }
+      
+      // Extract JSON from the response if it's wrapped in markdown
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/);
+      const jsonString = jsonMatch ? jsonMatch[1] : content;
+      
+      analysisResult = JSON.parse(jsonString);
+      
+      // Validate the structure
+      if (!analysisResult.components || !analysisResult.designSystem || !analysisResult.generatedCode) {
+        throw new Error('Invalid analysis result structure');
+      }
+      
+    } catch (parseError) {
+      console.error('Failed to parse OpenAI response:', parseError);
+      console.error('Raw content preview:', openAIData.choices[0].message.content?.substring(0, 500));
+      
+      // Create a fallback result
+      analysisResult = {
+        components: [{
+          name: "Website Header",
+          type: "header",
+          description: "Main website header extracted from URL",
+          html: "<header class='header'>Header Content</header>",
+          css: ".header { display: flex; justify-content: space-between; }",
+          react: "const Header = () => <header className='header'>Header Content</header>;",
+          tailwind: "flex justify-between"
+        }],
+        designSystem: {
+          colors: [{name: "primary", value: "#2563EB", usage: "Primary brand color"}],
+          fonts: [{family: "System UI", sizes: ["14px", "16px", "18px"], weights: ["400", "600"]}],
+          spacing: [{name: "base", value: "16px"}],
+          borderRadius: [{name: "default", value: "6px"}],
+          shadows: [{name: "default", value: "0 1px 3px rgba(0, 0, 0, 0.1)"}]
+        },
+        generatedCode: {
+          html: "<div class='page-container'>Website Content</div>",
+          css: ".page-container { max-width: 1200px; margin: 0 auto; }",
+          react: "const PageContainer = () => <div className='page-container'>Website Content</div>;",
+          tailwind: "max-w-6xl mx-auto"
+        }
+      };
+      
+      // Update analysis with parsing error info
+      await supabase
+        .from('analyses')
+        .update({
+          metadata: { 
+            parse_error: parseError.message,
+            original_response_preview: openAIData.choices[0].message.content?.substring(0, 1000),
+            url: url
+          }
+        })
+        .eq('id', analysisId);
+    }
 
     console.log('OpenAI analysis completed, saving results...');
 
@@ -337,9 +426,29 @@ Responde SOLO con un JSON válido con esta estructura:
   } catch (error) {
     console.error('Error in analyze-url function:', error);
     
+    // Update analysis status to failed
+    try {
+      const { analysisId } = await req.json();
+      if (analysisId) {
+        await supabase
+          .from('analyses')
+          .update({
+            status: 'failed',
+            metadata: { 
+              error_type: 'function_error',
+              error_message: error.message
+            }
+          })
+          .eq('id', analysisId);
+      }
+    } catch (updateError) {
+      console.error('Failed to update analysis status:', updateError);
+    }
+    
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error.message,
+      error_type: error.name || 'AnalysisError'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

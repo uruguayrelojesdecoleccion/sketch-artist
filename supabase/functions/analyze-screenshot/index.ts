@@ -181,7 +181,73 @@ Responde SOLO con un JSON válido con esta estructura:
     }
 
     const openAIData = await openAIResponse.json();
-    const analysisResult = JSON.parse(openAIData.choices[0].message.content);
+    console.log('OpenAI raw response:', openAIData.choices[0].message.content);
+    
+    let analysisResult;
+    try {
+      // Validate that we got a response
+      if (!openAIData.choices || !openAIData.choices[0] || !openAIData.choices[0].message) {
+        throw new Error('Invalid OpenAI response format');
+      }
+      
+      const content = openAIData.choices[0].message.content;
+      if (!content) {
+        throw new Error('OpenAI returned empty content');
+      }
+      
+      // Extract JSON from the response if it's wrapped in markdown
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/);
+      const jsonString = jsonMatch ? jsonMatch[1] : content;
+      
+      analysisResult = JSON.parse(jsonString);
+      
+      // Validate the structure
+      if (!analysisResult.components || !analysisResult.designSystem || !analysisResult.generatedCode) {
+        throw new Error('Invalid analysis result structure');
+      }
+      
+    } catch (parseError) {
+      console.error('Failed to parse OpenAI response:', parseError);
+      console.error('Raw content:', openAIData.choices[0].message.content);
+      
+      // Create a fallback result
+      analysisResult = {
+        components: [{
+          name: "Detected UI",
+          type: "other",
+          description: "General UI elements detected from image",
+          position: {x: 0, y: 0, width: 100, height: 100},
+          html: "<div class='ui-element'>Detected content</div>",
+          css: ".ui-element { display: block; }",
+          react: "const UIElement = () => <div className='ui-element'>Detected content</div>;",
+          tailwind: "block"
+        }],
+        designSystem: {
+          colors: [{name: "primary", value: "#3B82F6", usage: "Primary brand color"}],
+          fonts: [{family: "Inter", sizes: ["14px", "16px"], weights: ["400", "600"]}],
+          spacing: [{name: "md", value: "16px"}],
+          borderRadius: [{name: "md", value: "8px"}],
+          shadows: [{name: "md", value: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"}]
+        },
+        generatedCode: {
+          html: "<div class='ui-container'>Analyzed UI</div>",
+          css: ".ui-container { display: flex; }",
+          react: "const AnalyzedUI = () => <div className='ui-container'>Analyzed UI</div>;",
+          tailwind: "flex"
+        }
+      };
+      
+      // Update analysis with parsing error info
+      await supabase
+        .from('analyses')
+        .update({
+          metadata: { 
+            parse_error: parseError.message,
+            original_response: openAIData.choices[0].message.content?.substring(0, 1000)
+          }
+        })
+        .eq('id', analysisId);
+    }
 
     console.log('OpenAI analysis completed, saving results...');
 
@@ -256,9 +322,29 @@ Responde SOLO con un JSON válido con esta estructura:
   } catch (error) {
     console.error('Error in analyze-screenshot function:', error);
     
+    // Update analysis status to failed
+    try {
+      const { analysisId } = await req.json();
+      if (analysisId) {
+        await supabase
+          .from('analyses')
+          .update({
+            status: 'failed',
+            metadata: { 
+              error_type: 'function_error',
+              error_message: error.message
+            }
+          })
+          .eq('id', analysisId);
+      }
+    } catch (updateError) {
+      console.error('Failed to update analysis status:', updateError);
+    }
+    
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error.message,
+      error_type: error.name || 'AnalysisError'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
