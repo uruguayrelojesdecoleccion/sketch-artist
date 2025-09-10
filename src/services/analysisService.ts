@@ -199,6 +199,7 @@ export const analysisService = {
     components: any[];
     designSystem: any;
     generatedCode: any[];
+    siteBlueprint: any;
   }> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -240,11 +241,24 @@ export const analysisService = {
 
     if (codeError) throw codeError;
 
+    // Get site blueprint
+    const { data: siteBlueprint, error: blueprintError } = await supabase
+      .from('site_blueprints')
+      .select('*')
+      .eq('analysis_id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (blueprintError && blueprintError.code !== 'PGRST116') {
+      console.warn('Site blueprint not found:', blueprintError);
+    }
+
     return {
       analysis,
       components: components || [],
       designSystem: designSystems?.[0] || null,
-      generatedCode: generatedCode || []
+      generatedCode: generatedCode || [],
+      siteBlueprint: siteBlueprint || null
     };
   }
 };

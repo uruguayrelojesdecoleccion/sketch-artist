@@ -70,33 +70,8 @@ const Index = () => {
           // Get full results
           const fullResults = await analysisService.getAnalysisWithResults(analysis.id);
           
-          // Transform to expected format
-          const transformedResults = {
-            components: fullResults.components.map(comp => ({
-              name: comp.name,
-              type: comp.type,
-              description: comp.description,
-              code: comp.html_code
-            })),
-            styles: {
-              colors: fullResults.designSystem?.colors?.map((c: any) => ({ name: c.name, value: c.value })) || [],
-              fonts: fullResults.designSystem?.fonts?.map((f: any) => ({ name: f.family, family: f.family, size: f.sizes?.[0] || '16px' })) || [],
-              spacing: fullResults.designSystem?.spacing?.map((s: any) => ({ name: s.name, value: s.value })) || []
-            },
-            layout: {
-              structure: "Estructura detectada automáticamente",
-              grid: "Sistema de grid identificado",
-              responsive: "Diseño responsive detectado"
-            },
-            fullCode: {
-              html: fullResults.generatedCode.find((c: any) => c.format === 'html')?.code || '',
-              css: fullResults.generatedCode.find((c: any) => c.format === 'css')?.code || '',
-              react: fullResults.generatedCode.find((c: any) => c.format === 'react')?.code || '',
-              tailwind: fullResults.generatedCode.find((c: any) => c.format === 'tailwind')?.code || ''
-            }
-          };
-
-          setResults(transformedResults);
+          // Use the actual data structure from the service
+          setResults(fullResults);
           toast.success("¡Análisis completado exitosamente!");
           
           // Scroll to results

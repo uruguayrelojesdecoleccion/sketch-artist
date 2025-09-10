@@ -3,34 +3,35 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Download, Eye, Code2, Palette, Layout } from "lucide-react";
+import { Copy, Download, Eye, Code2, Palette, Layout, Globe } from "lucide-react";
 import { toast } from "sonner";
+import { SiteBlueprintView } from "./SiteBlueprintView";
 
 interface AnalysisResultsProps {
   results: {
+    analysis: any;
     components: Array<{
       name: string;
       type: string;
       description: string;
-      code: string;
-      styles: string;
+      html_code?: string;
+      css_code?: string;
+      react_code?: string;
+      tailwind_classes?: string;
     }>;
-    styles: {
-      colors: Array<{ name: string; value: string }>;
-      fonts: Array<{ name: string; family: string; size: string }>;
+    designSystem: {
+      colors: Array<{ name: string; value: string; usage?: string }>;
+      fonts: Array<{ family: string; sizes?: string[]; weights?: string[] }>;
       spacing: Array<{ name: string; value: string }>;
-    };
-    layout: {
-      structure: string;
-      grid: string;
-      responsive: string;
-    };
-    fullCode: {
-      html: string;
-      css: string;
-      react: string;
-      tailwind: string;
-    };
+      border_radius?: Array<{ name: string; value: string }>;
+      shadows?: Array<{ name: string; value: string }>;
+    } | null;
+    generatedCode: Array<{
+      format: string;
+      code: string;
+      filename?: string;
+    }>;
+    siteBlueprint?: any;
   };
 }
 
@@ -76,7 +77,7 @@ export const AnalysisResults = ({ results }: AnalysisResultsProps) => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-secondary/50">
+          <TabsList className={`grid w-full ${results.siteBlueprint ? 'grid-cols-5' : 'grid-cols-4'} bg-secondary/50`}>
             <TabsTrigger value="components" className="flex items-center gap-2">
               <Layout className="w-4 h-4" />
               Componentes
@@ -85,6 +86,12 @@ export const AnalysisResults = ({ results }: AnalysisResultsProps) => {
               <Palette className="w-4 h-4" />
               Estilos
             </TabsTrigger>
+            {results.siteBlueprint && (
+              <TabsTrigger value="blueprint" className="flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                Blueprint
+              </TabsTrigger>
+            )}
             <TabsTrigger value="layout" className="flex items-center gap-2">
               <Eye className="w-4 h-4" />
               Layout
@@ -108,7 +115,7 @@ export const AnalysisResults = ({ results }: AnalysisResultsProps) => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => copyToClipboard(component.code, 'Código del componente')}
+                    onClick={() => copyToClipboard(component.react_code || component.html_code || '', 'Código del componente')}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
@@ -116,7 +123,7 @@ export const AnalysisResults = ({ results }: AnalysisResultsProps) => {
                 <p className="text-sm text-muted-foreground mb-3">{component.description}</p>
                 <div className="bg-background/50 rounded p-3">
                   <pre className="text-xs text-foreground overflow-x-auto">
-                    <code>{component.code}</code>
+                    <code>{component.react_code || component.html_code || ''}</code>
                   </pre>
                 </div>
               </Card>
@@ -131,7 +138,7 @@ export const AnalysisResults = ({ results }: AnalysisResultsProps) => {
                   Colores
                 </h4>
                 <div className="space-y-2">
-                  {results.styles.colors.map((color, index) => (
+                  {results.designSystem?.colors?.map((color, index) => (
                     <div key={index} className="flex items-center gap-3">
                       <div
                         className="w-6 h-6 rounded border border-primary/20"
@@ -140,6 +147,7 @@ export const AnalysisResults = ({ results }: AnalysisResultsProps) => {
                       <div className="flex-1">
                         <p className="text-sm font-medium text-foreground">{color.name}</p>
                         <p className="text-xs text-muted-foreground">{color.value}</p>
+                        {color.usage && <p className="text-xs text-muted-foreground">{color.usage}</p>}
                       </div>
                       <Button
                         variant="ghost"
@@ -149,18 +157,23 @@ export const AnalysisResults = ({ results }: AnalysisResultsProps) => {
                         <Copy className="w-3 h-3" />
                       </Button>
                     </div>
-                  ))}
+                  )) || <p className="text-sm text-muted-foreground">No hay colores disponibles</p>}
                 </div>
               </Card>
 
               <Card className="p-4 bg-secondary/20 border-primary/10">
                 <h4 className="font-semibold text-foreground mb-3">Tipografías</h4>
                 <div className="space-y-2">
-                  {results.styles.fonts.map((font, index) => (
+                  {results.designSystem?.fonts?.map((font, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-foreground">{font.name}</p>
-                        <p className="text-xs text-muted-foreground">{font.family} - {font.size}</p>
+                        <p className="text-sm font-medium text-foreground">{font.family}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Tamaños: {font.sizes?.join(', ') || 'N/A'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Pesos: {font.weights?.join(', ') || 'N/A'}
+                        </p>
                       </div>
                       <Button
                         variant="ghost"
@@ -170,14 +183,14 @@ export const AnalysisResults = ({ results }: AnalysisResultsProps) => {
                         <Copy className="w-3 h-3" />
                       </Button>
                     </div>
-                  ))}
+                  )) || <p className="text-sm text-muted-foreground">No hay fuentes disponibles</p>}
                 </div>
               </Card>
 
               <Card className="p-4 bg-secondary/20 border-primary/10">
                 <h4 className="font-semibold text-foreground mb-3">Espaciados</h4>
                 <div className="space-y-2">
-                  {results.styles.spacing.map((spacing, index) => (
+                  {results.designSystem?.spacing?.map((spacing, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-foreground">{spacing.name}</p>
@@ -191,51 +204,65 @@ export const AnalysisResults = ({ results }: AnalysisResultsProps) => {
                         <Copy className="w-3 h-3" />
                       </Button>
                     </div>
-                  ))}
+                  )) || <p className="text-sm text-muted-foreground">No hay espaciados disponibles</p>}
                 </div>
               </Card>
             </div>
           </TabsContent>
 
+          {results.siteBlueprint && (
+            <TabsContent value="blueprint" className="mt-6">
+              <SiteBlueprintView siteBlueprint={results.siteBlueprint} />
+            </TabsContent>
+          )}
+
           <TabsContent value="layout" className="space-y-4 mt-6">
             <Card className="p-4 bg-secondary/20 border-primary/10">
-              <h4 className="font-semibold text-foreground mb-3">Estructura de Layout</h4>
-              <div className="bg-background/50 rounded p-3">
-                <pre className="text-xs text-foreground overflow-x-auto">
-                  <code>{results.layout.structure}</code>
-                </pre>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyToClipboard(results.layout.structure, 'Estructura')}
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copiar
-                </Button>
+              <h4 className="font-semibold text-foreground mb-3">Información de Layout</h4>
+              <div className="space-y-4">
+                <div>
+                  <h5 className="text-sm font-medium text-foreground mb-2">Estructura HTML</h5>
+                  <div className="bg-background/50 rounded p-3">
+                    <pre className="text-xs text-foreground overflow-x-auto">
+                      <code>{results.components?.[0]?.html_code || 'No hay estructura disponible'}</code>
+                    </pre>
+                  </div>
+                </div>
+                {results.designSystem?.border_radius && (
+                  <div>
+                    <h5 className="text-sm font-medium text-foreground mb-2">Border Radius</h5>
+                    <div className="space-y-1">
+                      {results.designSystem.border_radius.map((radius, index) => (
+                        <div key={index} className="flex items-center justify-between text-sm">
+                          <span>{radius.name}</span>
+                          <span className="text-muted-foreground">{radius.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
           </TabsContent>
 
           <TabsContent value="code" className="space-y-4 mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(results.fullCode).map(([type, code]) => (
-                <Card key={type} className="p-4 bg-secondary/20 border-primary/10">
+              {results.generatedCode?.map((codeItem, index) => (
+                <Card key={index} className="p-4 bg-secondary/20 border-primary/10">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-foreground capitalize">{type}</h4>
+                    <h4 className="font-semibold text-foreground capitalize">{codeItem.format}</h4>
                     <div className="flex gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copyToClipboard(code, `Código ${type}`)}
+                        onClick={() => copyToClipboard(codeItem.code, `Código ${codeItem.format}`)}
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => downloadCode(code, `component.${type === 'react' ? 'tsx' : type}`)}
+                        onClick={() => downloadCode(codeItem.code, codeItem.filename || `component.${codeItem.format}`)}
                       >
                         <Download className="w-4 h-4" />
                       </Button>
@@ -243,11 +270,11 @@ export const AnalysisResults = ({ results }: AnalysisResultsProps) => {
                   </div>
                   <div className="bg-background/50 rounded p-3 max-h-60 overflow-y-auto">
                     <pre className="text-xs text-foreground">
-                      <code>{code}</code>
+                      <code>{codeItem.code}</code>
                     </pre>
                   </div>
                 </Card>
-              ))}
+              )) || <p className="text-sm text-muted-foreground">No hay código generado disponible</p>}
             </div>
           </TabsContent>
         </Tabs>

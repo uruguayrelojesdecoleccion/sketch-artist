@@ -162,33 +162,131 @@ serve(async (req) => {
     const markdownContent = firecrawlData.data.markdown || '';
     const screenshotBase64 = firecrawlData.data.screenshot;
 
-    const analysisPrompt = `
-Eres un experto en análisis de sitios web. Analiza esta página web y extrae:
+    // Check robots.txt
+    const domain = new URL(url).hostname;
+    let robotsTxt = '';
+    try {
+      const robotsResponse = await fetch(`${new URL(url).origin}/robots.txt`);
+      if (robotsResponse.ok) {
+        robotsTxt = await robotsResponse.text();
+        console.log('Retrieved robots.txt');
+      }
+    } catch (error) {
+      console.log('No robots.txt found');
+    }
 
-1. **COMPONENTES UI** (máximo 12):
+    // Check sitemap.xml
+    let sitemapUrls = [];
+    try {
+      const sitemapResponse = await fetch(`${new URL(url).origin}/sitemap.xml`);
+      if (sitemapResponse.ok) {
+        const sitemapText = await sitemapResponse.text();
+        const urlMatches = sitemapText.match(/<loc>(.*?)<\/loc>/g);
+        if (urlMatches) {
+          sitemapUrls = urlMatches.map(match => match.replace(/<\/?loc>/g, '')).slice(0, 20);
+          console.log(`Found ${sitemapUrls.length} URLs in sitemap`);
+        }
+      }
+    } catch (error) {
+      console.log('No sitemap.xml found');
+    }
+
+    const analysisPrompt = `
+Eres un experto en análisis de sitios web. Analiza esta página web y extrae información COMPLETA para crear un site blueprint:
+
+1. **COMPONENTES UI** (máximo 15):
    - Identifica elementos como header, navigation, hero, cards, buttons, forms, footer, etc.
    - Para cada componente proporciona: nombre, tipo, descripción
 
-2. **DESIGN SYSTEM**:
-   - Colores: paleta de colores de la marca (máximo 8 colores)
-   - Tipografías: fuentes utilizadas
-   - Espaciado: sistema de espaciado
-   - Componentes: patrones reutilizables
+2. **DESIGN SYSTEM COMPLETO**:
+   - Colores: paleta completa de colores (primary, secondary, accent, etc.)
+   - Tipografías: todas las fuentes, tamaños y pesos utilizados
+   - Espaciado: sistema de espaciado (margins, paddings)
+   - Border radius: esquinas redondeadas utilizadas
+   - Sombras: efectos de sombra aplicados
+   - Breakpoints: puntos de quiebre para responsive design
 
-3. **CÓDIGO LIMPIO**:
-   - HTML semántico y estructurado
-   - CSS moderno con variables
-   - Componente React profesional
-   - Clases Tailwind optimizadas
+3. **SITEMAP Y NAVEGACIÓN**:
+   - Enlaces de navegación encontrados
+   - Estructura de páginas
+   - Menús y submenús
+
+4. **ASSETS Y RECURSOS**:
+   - Imágenes importantes (logos, iconos, hero images)
+   - Fuentes externas utilizadas
+   - CDNs y recursos externos
+
+5. **SEO Y METADATA**:
+   - Meta tags importantes
+   - Títulos y descripciones
+   - Structured data si existe
+
+6. **INTEGRACIONES**:
+   - Analytics (Google Analytics, etc.)
+   - Redes sociales
+   - Chat widgets o herramientas de terceros
 
 CONTENIDO HTML:
-${htmlContent.substring(0, 8000)}
+${htmlContent.substring(0, 12000)}
 
 CONTENIDO MARKDOWN:
-${markdownContent.substring(0, 4000)}
+${markdownContent.substring(0, 6000)}
+
+ROBOTS.TXT:
+${robotsTxt}
+
+SITEMAP URLS:
+${sitemapUrls.join('\n')}
 
 Responde SOLO con un JSON válido con esta estructura:
 {
+  "siteBlueprint": {
+    "domain": "${domain}",
+    "sitemap": [{"url": "string", "title": "string", "type": "page|section"}],
+    "pages": [{"url": "string", "title": "string", "description": "string", "components": ["string"]}],
+    "designTokens": {
+      "colors": [{"name": "string", "value": "string", "usage": "string"}],
+      "fonts": [{"family": "string", "sizes": ["string"], "weights": ["string"], "source": "google|local|cdn"}],
+      "spacing": [{"name": "string", "value": "string"}],
+      "borderRadius": [{"name": "string", "value": "string"}],
+      "shadows": [{"name": "string", "value": "string"}],
+      "breakpoints": [{"name": "string", "value": "string"}]
+    },
+    "componentLibrary": [
+      {
+        "name": "string",
+        "type": "header|navigation|hero|card|button|form|footer|sidebar|modal|other",
+        "description": "string",
+        "variants": ["string"],
+        "props": ["string"],
+        "html": "string",
+        "css": "string",
+        "react": "string", 
+        "tailwind": "string"
+      }
+    ],
+    "assets": {
+      "images": [{"src": "string", "alt": "string", "type": "logo|icon|hero|banner|other"}],
+      "fonts": [{"family": "string", "source": "string"}],
+      "icons": [{"name": "string", "library": "string"}]
+    },
+    "seoStructure": {
+      "title": "string",
+      "description": "string",
+      "keywords": ["string"],
+      "ogTags": [{"property": "string", "content": "string"}],
+      "structuredData": [{"type": "string", "data": "object"}]
+    },
+    "thirdPartyIntegrations": [
+      {"name": "string", "type": "analytics|social|chat|payment|other", "details": "string"}
+    ],
+    "accessibilityFeatures": {
+      "hasAltTexts": "boolean",
+      "hasAriaLabels": "boolean",
+      "hasSkipLinks": "boolean",
+      "colorContrast": "good|fair|poor"
+    }
+  },
   "components": [
     {
       "name": "string",
@@ -272,6 +370,27 @@ Responde SOLO con un JSON válido con esta estructura:
       // Validate the structure
       if (!analysisResult.components || !analysisResult.designSystem || !analysisResult.generatedCode) {
         throw new Error('Invalid analysis result structure');
+      }
+      
+      // Save site blueprint if available
+      if (analysisResult.siteBlueprint) {
+        console.log('Saving site blueprint data...');
+        await supabase
+          .from('site_blueprints')
+          .insert({
+            analysis_id: analysisId,
+            user_id: user.id,
+            domain: analysisResult.siteBlueprint.domain,
+            sitemap: analysisResult.siteBlueprint.sitemap || [],
+            pages: analysisResult.siteBlueprint.pages || [],
+            design_tokens: analysisResult.siteBlueprint.designTokens || {},
+            component_library: analysisResult.siteBlueprint.componentLibrary || [],
+            assets: analysisResult.siteBlueprint.assets || {},
+            seo_structure: analysisResult.siteBlueprint.seoStructure || {},
+            third_party_integrations: analysisResult.siteBlueprint.thirdPartyIntegrations || [],
+            accessibility_features: analysisResult.siteBlueprint.accessibilityFeatures || {},
+            robots_txt: robotsTxt
+          });
       }
       
     } catch (parseError) {
