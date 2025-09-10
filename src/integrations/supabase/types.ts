@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -363,6 +363,63 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      site_blueprints: {
+        Row: {
+          accessibility_features: Json | null
+          analysis_id: string
+          assets: Json | null
+          component_library: Json | null
+          created_at: string
+          design_tokens: Json | null
+          domain: string
+          id: string
+          pages: Json | null
+          performance_metrics: Json | null
+          robots_txt: string | null
+          seo_structure: Json | null
+          sitemap: Json | null
+          third_party_integrations: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accessibility_features?: Json | null
+          analysis_id: string
+          assets?: Json | null
+          component_library?: Json | null
+          created_at?: string
+          design_tokens?: Json | null
+          domain: string
+          id?: string
+          pages?: Json | null
+          performance_metrics?: Json | null
+          robots_txt?: string | null
+          seo_structure?: Json | null
+          sitemap?: Json | null
+          third_party_integrations?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accessibility_features?: Json | null
+          analysis_id?: string
+          assets?: Json | null
+          component_library?: Json | null
+          created_at?: string
+          design_tokens?: Json | null
+          domain?: string
+          id?: string
+          pages?: Json | null
+          performance_metrics?: Json | null
+          robots_txt?: string | null
+          seo_structure?: Json | null
+          sitemap?: Json | null
+          third_party_integrations?: Json | null
           updated_at?: string
           user_id?: string
         }
